@@ -17,9 +17,8 @@ This is the second project I had to create for OS. The project is seperated into
 
 ### Executing program
 
-
-
 ```
+cd Phase_One or cd Phase_Two
 cd src
 make all
 ```
