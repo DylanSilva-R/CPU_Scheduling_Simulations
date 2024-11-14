@@ -436,7 +436,7 @@ int main()
                 sizeOfPArray = (sizeof(pArraySmall) / sizeof(pArraySmall[0]));             // Size of process array.
                 resourceCount = (sizeof(pArraySmall[1].resourceAllocation) / sizeof(int)); // Size of resources.
 
-                printf("Amount of processes: %d\n", sizeOfPArray);
+                printf("Amount of processes: %d\n", sizeOfPArray-1);
                 printf("Amount of resources: %d\n", resourceCount);
 
                 if(clock_gettime(CLOCK_REALTIME,&res) == -1)
@@ -468,7 +468,7 @@ int main()
                 sizeOfPArray = (sizeof(pArrayMed) / sizeof(pArrayMed[0]));               // Size of process array.
                 resourceCount = (sizeof(pArrayMed[1].resourceAllocation) / sizeof(int)); // Size of resources.
 
-                printf("Amount of processes: %d\n", sizeOfPArray);
+                printf("Amount of processes: %d\n", sizeOfPArray-1);
                 printf("Amount of resources: %d\n", resourceCount);
 
                 if(clock_gettime(CLOCK_REALTIME,&res) == -1)
@@ -500,7 +500,7 @@ int main()
                 sizeOfPArray = (sizeof(pArrayLarge) / sizeof(pArrayLarge[0]));             // Size of process array.
                 resourceCount = (sizeof(pArrayLarge[1].resourceAllocation) / sizeof(int)); // Size of resources.
 
-                printf("Amount of processes: %d\n", sizeOfPArray);
+                printf("Amount of processes: %d\n", sizeOfPArray-1);
                 printf("Amount of resources: %d\n", resourceCount);
 
                 if(clock_gettime(CLOCK_REALTIME,&res) == -1)
