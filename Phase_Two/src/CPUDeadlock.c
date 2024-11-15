@@ -50,7 +50,7 @@ void *process_Action(void *arg) // Process performing an action. Process threads
 
     printf("Process %s is running.\n", process->processID);
     printf("Process run time is %d\n", process->runTime);
-    sleep(process->runTime);
+    sleep(1);
 
     pthread_mutex_unlock(&lock);
     free(process);
