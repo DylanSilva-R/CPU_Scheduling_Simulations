@@ -22,28 +22,20 @@
 #include "Merge.h"
 
 #define RESOURCE_SIZE 5
-#define BILLION 1000000000L;
 
 pthread_mutex_t lock;
 
 struct Process_With_R // Struct to define processes with resources
 {
-    /*
-    * Will need to readjust this struct. Need to implement dynamic memory allocation.
-    */
     char processID[50];
     int resourceAllocation[RESOURCE_SIZE];
     int resourceRequestMax[RESOURCE_SIZE];
     int resourceAvailable[RESOURCE_SIZE];
     int resourceNeed[RESOURCE_SIZE];
     int processRan; // Only 0 or 1 symbolizing true or false.
-    int safeSequenceIndex[RESOURCE_SIZE];
     int runTime;
-    // int SizeOfPArray;
-    // int resourceCount;
-    // int waitTime;
-    // int turnAroundTime;
 };
+
 
 void *process_Action(void *arg) // Process performing an action. Process threads will use this function.
 {
@@ -65,7 +57,7 @@ void *process_Action(void *arg) // Process performing an action. Process threads
     pthread_exit(NULL);
 }
 
-void print_Bankers_Algo(struct Process_With_R *pArray, int sizeOfPArray, int resourceCount)
+void print_Bankers_Algo(struct Process_With_R *pArray, int *safeSequenceIndex, int sizeOfPArray, int resourceCount)
 {
     for (int i = 0; i < sizeOfPArray; i++)
     {
@@ -100,22 +92,22 @@ void print_Bankers_Algo(struct Process_With_R *pArray, int sizeOfPArray, int res
     }
 
     printf("Safe sequence: ");
-    for (int i = 0; i < sizeOfPArray - 1; i++)
+    for (int i = 0; i < sizeOfPArray-1; i++)
     {
 
         if (i < sizeOfPArray - 2)
         {
-            printf("%s => ", pArray[pArray[0].safeSequenceIndex[i]].processID);
+            printf("%s => ", pArray[safeSequenceIndex[i]].processID);
         }
         else
         {
-            printf("%s", pArray[pArray[0].safeSequenceIndex[i]].processID);
+            printf("%s", pArray[safeSequenceIndex[i]].processID);
         }
     }
     printf("\n");
 }
 
-int bankers_Algo_Avoidance(struct Process_With_R *pArray, int sizeOfPArray, int resourceCount)
+int bankers_Algo_Avoidance(struct Process_With_R *pArray, int * safeSequenceIndex, int sizeOfPArray, int resourceCount)
 {
     /*
      * Purpose of function:
@@ -189,7 +181,7 @@ int bankers_Algo_Avoidance(struct Process_With_R *pArray, int sizeOfPArray, int 
 
                 if (i < sizeOfPArray)
                 {
-                    pArray[0].safeSequenceIndex[i] = j;
+                    safeSequenceIndex[i] = j;
                     // safeSequenceIndex[i] = j;
                     pArray[j].processRan = 1;
 
@@ -217,11 +209,9 @@ int bankers_Algo_Avoidance(struct Process_With_R *pArray, int sizeOfPArray, int 
     }
 }
 
-void run_Threads(struct Process_With_R *pArray, int sizeOfPArray)
+void run_Threads(struct Process_With_R *pArray, int * safeSequenceIndex, int sizeOfPArray)
 {
     // Last element is there to calculate the last available matrix value.
-
-    int safeSequenceIndex[sizeOfPArray];
 
     pthread_t processes[sizeOfPArray];
     pthread_mutex_init(&lock, NULL);
@@ -237,7 +227,7 @@ void run_Threads(struct Process_With_R *pArray, int sizeOfPArray)
             perror("Memory allocation failed.\n");
         }
 
-        *hold = pArray[pArray->safeSequenceIndex[i]];
+        *hold = pArray[safeSequenceIndex[i]];
 
         if (pthread_create(processes + i, NULL, &process_Action, (void *)hold) != 0)
         {
@@ -354,7 +344,6 @@ int main()
      *   - Create Safe sequence array
      *   - Calculate safe sequence using
      *
-     *
      */
 
     printf(" _______________________\n");
@@ -364,54 +353,53 @@ int main()
     printf("\n");
 
     // Small amount of processes
-    struct Process_With_R pArraySmall[] = {{"P0", {0, 0, 1, 2, 1}, {0, 0, 1, 2, 5}, {1, 5, 2, 0, 2}, {0, 0, 0, 0, 0}, 0, {0, 0, 0, 0, 0}}, // Process, allocation, max resource request, resource need
-                                           {"P1", {1, 0, 0, 0, 3}, {1, 7, 5, 0, 5}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, 0, {0, 0, 0, 0, 0}},
-                                           {"P2", {1, 3, 5, 4, 2}, {2, 3, 5, 6, 5}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, 0, {0, 0, 0, 0, 0}},
-                                           {"P3", {0, 6, 3, 2, 5}, {0, 6, 5, 2, 5}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, 0, {0, 0, 0, 0, 0}},
-                                           {"P4", {0, 0, 1, 4, 6}, {0, 6, 5, 6, 10}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, 0, {0, 0, 0, 0, 0}},
-                                           {"P5", {0, 1, 2, 9, 6}, {1, 2, 3, 10, 9}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, 0, {0, 0, 0, 0, 0}},
-                                           {"Empty", {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, 0, {0, 0, 0, 0, 0}}};
+    struct Process_With_R pArraySmall[] = {{"P0", {0, 0, 1, 2, 1}, {0, 0, 1, 2, 5}, {1, 5, 2, 0, 2}, {0, 0, 0, 0, 0}}, // Process, allocation, max resource request, resource need
+                                           {"P1", {1, 0, 0, 0, 3}, {1, 7, 5, 0, 5}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}},
+                                           {"P2", {1, 3, 5, 4, 2}, {2, 3, 5, 6, 5}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}},
+                                           {"P3", {0, 6, 3, 2, 5}, {0, 6, 5, 2, 5}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}},
+                                           {"P4", {0, 0, 1, 4, 6}, {0, 6, 5, 6, 10}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}},
+                                           {"P5", {0, 1, 2, 9, 6}, {1, 2, 3, 10, 9}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}},
+                                           {"Empty", {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}}};
     // Last element is there to calculate the last available matrix value.
 
     // Medium amount of processes
-    struct Process_With_R pArrayMed[] = {{"P0", {0, 0, 1, 2, 1}, {0, 0, 1, 2, 5}, {1, 5, 2, 0, 2}, {0, 0, 0, 0, 0}, 0, {0, 0, 0, 0, 0}}, // Process, allocation, max resource request, resource need
-                                         {"P1", {1, 0, 0, 0, 3}, {1, 7, 5, 0, 5}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, 0, {0, 0, 0, 0, 0}},
-                                         {"P2", {1, 3, 5, 4, 2}, {2, 3, 5, 6, 5}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, 0, {0, 0, 0, 0, 0}},
-                                         {"P3", {0, 6, 3, 2, 5}, {0, 6, 5, 2, 5}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, 0, {0, 0, 0, 0, 0}},
-                                         {"P4", {0, 0, 1, 4, 6}, {0, 6, 5, 6, 10}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, 0, {0, 0, 0, 0, 0}},
-                                         {"P5", {0, 2, 2, 9, 6}, {1, 3, 4, 9, 8}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, 0, {0, 0, 0, 0, 0}},
-                                         {"P6", {0, 3, 3, 10, 7}, {1, 4, 3, 10, 9}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, 0, {0, 0, 0, 0, 0}},
-                                         {"P7", {0, 5, 4, 3, 8}, {2, 6, 6, 8, 9}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, 0, {0, 0, 0, 0, 0}},
-                                         {"P8", {0, 2, 3, 2, 3}, {5, 5, 5, 6, 9}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, 0, {0, 0, 0, 0, 0}},
-                                         {"P9", {0, 3, 5, 1, 2}, {6, 4, 6, 9, 9}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, 0, {0, 0, 0, 0, 0}},
-                                         {"P10", {0, 2, 2, 9, 6}, {1, 3, 3, 11, 9}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, 0, {0, 0, 0, 0, 0}},
-                                         {"Empty", {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, 0, {0, 0, 0, 0, 0}}};
+    struct Process_With_R pArrayMed[] = {{"P0", {0, 0, 1, 2, 1}, {0, 0, 1, 2, 5}, {1, 5, 2, 0, 2}, {0, 0, 0, 0, 0}}, // Process, allocation, max resource request, resource need
+                                         {"P1", {1, 0, 0, 0, 3}, {1, 7, 5, 0, 5}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}},
+                                         {"P2", {1, 3, 5, 4, 2}, {2, 3, 5, 6, 5}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}},
+                                         {"P3", {0, 6, 3, 2, 5}, {0, 6, 5, 2, 5}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}},
+                                         {"P4", {0, 0, 1, 4, 6}, {0, 6, 5, 6, 10}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}},
+                                         {"P5", {0, 2, 2, 9, 6}, {1, 3, 4, 9, 8}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}},
+                                         {"P6", {0, 3, 3, 10, 7}, {1, 4, 3, 10, 9}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}},
+                                         {"P7", {0, 5, 4, 3, 8}, {2, 6, 6, 8, 9}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}},
+                                         {"P8", {0, 2, 3, 2, 3}, {5, 5, 5, 6, 9}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}},
+                                         {"P9", {0, 3, 5, 1, 2}, {6, 4, 6, 9, 9}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}},
+                                         {"P10", {0, 2, 2, 9, 6}, {1, 3, 3, 11, 9}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}},
+                                         {"Empty", {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}}};
     // Last element is there to calculate the last available matrix value.
 
     // Large amount of processes
-    struct Process_With_R pArrayLarge[] = {{"P0", {0, 0, 1, 2, 1}, {0, 0, 1, 2, 5}, {1, 5, 2, 0, 2}, {0, 0, 0, 0, 0}, 0, {0, 0, 0, 0, 0}}, // Process, allocation, max resource request, resource need
-                                           {"P1", {1, 0, 0, 0, 3}, {1, 7, 5, 0, 5}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, 0, {0, 0, 0, 0, 0}},
-                                           {"P2", {1, 3, 5, 4, 2}, {2, 3, 5, 6, 5}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, 0, {0, 0, 0, 0, 0}},
-                                           {"P3", {0, 6, 3, 2, 5}, {0, 6, 5, 2, 5}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, 0, {0, 0, 0, 0, 0}},
-                                           {"P4", {0, 0, 1, 4, 6}, {0, 6, 5, 6, 10}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, 0, {0, 0, 0, 0, 0}},
-                                           
-                                           {"P5", {2, 4, 3, 8, 6}, {3, 5, 3, 9, 1}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, 0, {0, 0, 0, 0, 0}},
-                                           {"P6", {5, 2, 4, 5, 7}, {6, 3, 5, 6, 9}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, 0, {0, 0, 0, 0, 0}},
-                                           {"P7", {5, 2, 2, 4, 8}, {11, 5, 6, 4, 9}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, 0, {0, 0, 0, 0, 0}},
-                                           {"P8", {6, 6, 2, 5, 9}, {7, 8, 3, 6, 10}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, 0, {0, 0, 0, 0, 0}},
-                                           {"P9", {1, 5, 2, 8, 1}, {2, 6, 5, 9, 10}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, 0, {0, 0, 0, 0, 0}},
-                                           {"P10", {2, 8, 2, 5, 2}, {5, 9, 4, 6, 5}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, 0, {0, 0, 0, 0, 0}},
-                                           {"P11", {3, 9, 2, 2, 2}, {4, 10, 3, 4, 9}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, 0, {0, 0, 0, 0, 0}},
-                                           {"P12", {1, 10, 2, 1, 3}, {1, 11, 4, 4, 9}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, 0, {0, 0, 0, 0, 0}},
-                                           {"P13", {2, 3, 2, 6, 4}, {3, 5, 3, 8, 9}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, 0, {0, 0, 0, 0, 0}},
-                                           {"P14", {7, 2, 2, 7, 5}, {8, 3, 4, 8, 9}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, 0, {0, 0, 0, 0, 0}},
-                                           {"P15", {9, 1, 2, 8, 7}, {12, 2, 5, 9, 9}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, 0, {0, 0, 0, 0, 0}},
-                                           {"P16", {8, 2, 2, 2, 5}, {9, 2, 3, 4, 9}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, 0, {0, 0, 0, 0, 0}},
-                                           {"P17", {6, 5, 2, 5, 6}, {7, 9, 5, 5, 9}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, 0, {0, 0, 0, 0, 0}},
-                                           {"P18", {5, 7, 2, 9, 8}, {9, 7, 3, 10, 12}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, 0, {0, 0, 0, 0, 0}},
-                                           {"P19", {3, 6, 2, 1, 7}, {12, 10, 15, 13, 9}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, 0, {0, 0, 0, 0, 0}},
-                                           {"P20", {1, 5, 2, 4, 2}, {20, 22, 24, 25, 29}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, 0, {0, 0, 0, 0, 0}},
-                                           {"Empty", {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, 0, {0, 0, 0, 0, 0}}};
+    struct Process_With_R pArrayLarge[] = {{"P0", {0, 0, 1, 2, 1}, {0, 0, 1, 2, 5}, {1, 5, 2, 0, 2}, {0, 0, 0, 0, 0}}, // Process, allocation, max resource request, resource need
+                                           {"P1", {1, 0, 0, 0, 3}, {1, 7, 5, 0, 5}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}},
+                                           {"P2", {1, 3, 5, 4, 2}, {2, 3, 5, 6, 5}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}},
+                                           {"P3", {0, 6, 3, 2, 5}, {0, 6, 5, 2, 5}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}},
+                                           {"P4", {0, 0, 1, 4, 6}, {0, 6, 5, 6, 10}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}},
+                                           {"P5", {2, 4, 3, 8, 6}, {3, 5, 3, 9, 1}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}},
+                                           {"P6", {5, 2, 4, 5, 7}, {6, 3, 5, 6, 9}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}},
+                                           {"P7", {5, 2, 2, 4, 8}, {11, 5, 6, 4, 9}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}},
+                                           {"P8", {6, 6, 2, 5, 9}, {7, 8, 3, 6, 10}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}},
+                                           {"P9", {1, 5, 2, 8, 1}, {2, 6, 5, 9, 10}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}},
+                                           {"P10", {2, 8, 2, 5, 2}, {5, 9, 4, 6, 5}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}},
+                                           {"P11", {3, 9, 2, 2, 2}, {4, 10, 3, 4, 9}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}},
+                                           {"P12", {1, 10, 2, 1, 3}, {1, 11, 4, 4, 9}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}},
+                                           {"P13", {2, 3, 2, 6, 4}, {3, 5, 3, 8, 9}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}},
+                                           {"P14", {7, 2, 2, 7, 5}, {8, 3, 4, 8, 9}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}},
+                                           {"P15", {9, 1, 2, 8, 7}, {12, 2, 5, 9, 9}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}},
+                                           {"P16", {8, 2, 2, 2, 5}, {9, 2, 3, 4, 9}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}},
+                                           {"P17", {6, 5, 2, 5, 6}, {7, 9, 5, 5, 9}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}},
+                                           {"P18", {5, 7, 2, 9, 8}, {9, 7, 3, 10, 12}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}},
+                                           {"P19", {3, 6, 2, 1, 7}, {12, 10, 15, 13, 9}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}},
+                                           {"P20", {1, 5, 2, 4, 2}, {20, 22, 24, 25, 29}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}},
+                                           {"Empty", {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}}};
 
     int loop = 1;
     struct timespec res;
@@ -419,8 +407,10 @@ int main()
     long end;
     double runTime;
     int sizeOfPArray;
-    int resourceCount;
     int safeSequenceCode;
+    int safeSequenceIndexSmall[0];
+    int safeSequenceIndexMed[0];
+    int safeSequenceIndexLg[0];
 
     while (loop)
     {
@@ -434,10 +424,10 @@ int main()
         {
             case 1:
                 sizeOfPArray = (sizeof(pArraySmall) / sizeof(pArraySmall[0]));             // Size of process array.
-                resourceCount = (sizeof(pArraySmall[1].resourceAllocation) / sizeof(int)); // Size of resources.
+                safeSequenceIndexSmall[sizeOfPArray];
 
                 printf("Amount of processes: %d\n", sizeOfPArray-1);
-                printf("Amount of resources: %d\n", resourceCount);
+                printf("Amount of resources: %d\n", RESOURCE_SIZE);
 
                 if(clock_gettime(CLOCK_REALTIME,&res) == -1)
                 {
@@ -447,7 +437,7 @@ int main()
 
                 start = res.tv_nsec;
 
-                safeSequenceCode = bankers_Algo_Avoidance(pArraySmall, sizeOfPArray, resourceCount);
+                safeSequenceCode = bankers_Algo_Avoidance(pArraySmall, safeSequenceIndexSmall, sizeOfPArray, RESOURCE_SIZE);
                 
                 if(clock_gettime(CLOCK_REALTIME,&res) == -1)
                 {
@@ -458,18 +448,19 @@ int main()
                 end = res.tv_nsec;
                 runTime = end - start;
 
-                print_Bankers_Algo(pArraySmall, sizeOfPArray, resourceCount);
+                print_Bankers_Algo(pArraySmall, safeSequenceIndexSmall, sizeOfPArray, RESOURCE_SIZE);
                 printf("Banker's algorithm runtime: %lfns\n", runTime);
 
-                run_Threads(pArraySmall, sizeOfPArray-1);
+                run_Threads(pArraySmall, safeSequenceIndexSmall, sizeOfPArray);
             
                 break;
             case 2:
                 sizeOfPArray = (sizeof(pArrayMed) / sizeof(pArrayMed[0]));               // Size of process array.
-                resourceCount = (sizeof(pArrayMed[1].resourceAllocation) / sizeof(int)); // Size of resources.
+                safeSequenceIndexMed[sizeOfPArray];
+   
 
                 printf("Amount of processes: %d\n", sizeOfPArray-1);
-                printf("Amount of resources: %d\n", resourceCount);
+                printf("Amount of resources: %d\n", RESOURCE_SIZE);
 
                 if(clock_gettime(CLOCK_REALTIME,&res) == -1)
                 {
@@ -479,7 +470,7 @@ int main()
 
                 start = res.tv_nsec;
 
-                safeSequenceCode = bankers_Algo_Avoidance(pArrayMed, sizeOfPArray, resourceCount);
+                safeSequenceCode = bankers_Algo_Avoidance(pArrayMed, safeSequenceIndexMed, sizeOfPArray, RESOURCE_SIZE);
                 
                 if(clock_gettime(CLOCK_REALTIME,&res) == -1)
                 {
@@ -490,18 +481,18 @@ int main()
                 end = res.tv_nsec;
                 runTime = end - start;
 
-                print_Bankers_Algo(pArrayMed, sizeOfPArray, resourceCount);
+                print_Bankers_Algo(pArrayMed, safeSequenceIndexMed, sizeOfPArray, RESOURCE_SIZE);
                 printf("Banker's algorithm runtime: %lfns\n", runTime);
 
-                run_Threads(pArrayMed, sizeOfPArray-1);
+                run_Threads(pArrayMed, safeSequenceIndexMed, sizeOfPArray);
 
                 break;
             case 3:
                 sizeOfPArray = (sizeof(pArrayLarge) / sizeof(pArrayLarge[0]));             // Size of process array.
-                resourceCount = (sizeof(pArrayLarge[1].resourceAllocation) / sizeof(int)); // Size of resources.
+                safeSequenceIndexLg[sizeOfPArray];
 
                 printf("Amount of processes: %d\n", sizeOfPArray-1);
-                printf("Amount of resources: %d\n", resourceCount);
+                printf("Amount of resources: %d\n", RESOURCE_SIZE);
 
                 if(clock_gettime(CLOCK_REALTIME,&res) == -1)
                 {
@@ -511,7 +502,7 @@ int main()
 
                 start = res.tv_nsec;
 
-                safeSequenceCode = bankers_Algo_Avoidance(pArrayLarge, sizeOfPArray, resourceCount);
+                safeSequenceCode = bankers_Algo_Avoidance(pArrayLarge, safeSequenceIndexLg, sizeOfPArray, RESOURCE_SIZE);
                 
                 if(clock_gettime(CLOCK_REALTIME,&res) == -1)
                 {
@@ -522,10 +513,10 @@ int main()
                 end = res.tv_nsec;
                 runTime = end - start;
 
-                print_Bankers_Algo(pArrayLarge, sizeOfPArray, resourceCount);
+                print_Bankers_Algo(pArrayLarge, safeSequenceIndexLg, sizeOfPArray, RESOURCE_SIZE);
                 printf("Banker's algorithm runtime: %lfns\n", runTime);
 
-                run_Threads(pArrayLarge, sizeOfPArray-1);
+                run_Threads(pArrayLarge, safeSequenceIndexLg, sizeOfPArray);
                 
                 break;
             case 4:

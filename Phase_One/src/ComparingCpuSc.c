@@ -136,10 +136,15 @@ int main()
         create_Processes(pArray, processes);
 
         mergeSort(pArray, 0, processes-1, 0); //FCFS
+        printf("______\n");
+        printf("|FCFS|\n");
+        printf("|____|\n");
         calculate_Scheduling(pArray, processes, &totalWtFCFS, &totalTtFCFS, &totalIdlTimeFCFS);
         print_Processes(pArray, processes);
 
-
+        printf("_____\n");
+        printf("|SJF|\n");
+        printf("|___|\n");
         mergeSort(pArray, 0, processes-1, 1); // SJF
         calculate_Scheduling(pArray, processes, &totalWTSJF, &totalTtSJF, &totalIdlTimeSJF);
         print_Processes(pArray, processes);
